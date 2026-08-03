@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+enum LessonType {
+  VIDEO
+  PDF
+  TEXT
+}
+
+enum NotificationAudience {
+  ALL
+  INDIVIDUAL
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  role               Role      @default(STUDENT)
+  emailVerified      DateTime?
+  avatarUrl          String?
+  isBlocked          Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  verificationTokens VerificationToken[]
+  resetTokens        PasswordResetToken[]
+  loginEvents        LoginEvent[]
+  enrollments        Enrollment[]
+  lessonProgress     LessonProgress[]
+  certificates       Certificate[]
+  notifications      Notification[]        @relation("NotificationRecipient")
+  sentAnnouncements  Announcement[]        @relation("AnnouncementAuthor")
+
+  @@index([role])
+  @@index([email])
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String   @db.Text
+  thumbnailUrl String?
+  colorTag    String   @default("green")
+  isPublished Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  modules     Module[]
+  enrollments Enrollment[]
+  certificates Certificate[]
+
+  @@index([order])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  icon        String   @default("fa-layer-group")
+  colorTag    String   @default("green")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons     Lesson[]
+
+  @@index([courseId, order])
+}
+
+model Lesson {
+  id           String     @id @default(cuid())
+  moduleId     String
+  module       Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?    @db.Text
+  type         LessonType @default(VIDEO)
+  videoUrl     String?
+  videoPublicId String?
+  pdfUrl       String?
+  pdfPublicId  String?
+  textContent  String?    @db.Text
+  durationSec  Int?
+  order        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  progress     LessonProgress[]
+
+  @@index([moduleId, order])
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrolledAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Certificate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  certificateNo String @unique
+  issuedAt    DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  title     String
+  message   String               @db.Text
+  audience  NotificationAudience @default(ALL)
+  userId    String?
+  user      User?                @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  @@index([userId])
+}
+
+model Announcement {
+  id         String   @id @default(cuid())
+  title      String
+  message    String   @db.Text
+  sendEmail  Boolean  @default(false)
+  authorId   String
+  author     User     @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model SiteSettings {
+  id            String  @id @default("singleton")
+  siteName      String  @default("BAM Academy")
+  supportEmail  String  @default("support@bamacademy.com")
+  logoUrl       String?
+  maintenanceMode Boolean @default(false)
+  updatedAt     DateTime @updatedAt
+}
