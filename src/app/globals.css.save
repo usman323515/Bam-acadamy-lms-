@@ -1,14 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body {
-  background: #0a0f1e;
-  color: #fff;
-}
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: rgba(34,197,94,.35); border-radius: 6px; }
+ { background: rgba(34,197,94,.35); border-radius: 6px; }
 
 .card {
   @apply bg-card border border-line rounded-2xl;
@@ -18,8 +8,7 @@ body {
   @apply bg-brand-green text-bg font-bold px-5 py-2.5 rounded-xl hover:bg-brand-green2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-.btn-secondary {
-  @apply bg-card-2 text-white font-semibold px-5 py-2.5 rounded-xl border border-line hover:border-brand-green/50 transition-colors;
+.btn-secondary {bg-card-2  @apply bg-card2 text-white font-semibold px-5 py-2.5 rounded-xl border border-line hover:border-brand-green/50 transition-colors;
 }
 
 .input-field {
